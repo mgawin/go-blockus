@@ -2,6 +2,7 @@
 *.o
 *.a
 *.so
+blockus_game
 
 # Folders
 _obj
