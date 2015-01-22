@@ -79,3 +79,27 @@ func (block *block) Flip() {
 	block.shape = nshape
 	fmt.Println(block.ToString())
 }
+
+func (block *block) is_corner(i int, j int) bool {
+	c1 := 0
+	c2 := 0
+	c3 := 0
+	c4 := 0
+	if j > 0 {
+		c1 = block.shape[j-1][i]
+	}
+	if len(block.shape[0])-1 > i {
+		c2 = block.shape[j][i+1]
+	}
+	if len(block.shape)-1 > j {
+		c3 = block.shape[j+1][i]
+	}
+	if i > 0 {
+		c4 = block.shape[j][i-1]
+	}
+
+	if ((c1 + c2) == 0) || ((c2 + c3) == 0) || ((c3 + c4) == 0) || ((c4 + c1) == 0) {
+		return true
+	}
+	return false
+}

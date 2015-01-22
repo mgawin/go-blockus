@@ -25,8 +25,8 @@ func (game *game) ToString() string {
 	return str
 }
 
-func (game *game) Move(player *player,block *block,x int, y int){
+func (game *game) Move(player *player, block *block, x int, y int) {
 
 	game.board.Put(block, x, y)
-	
+
 }
