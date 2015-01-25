@@ -3,8 +3,8 @@ package blockus
 import "fmt"
 
 type block struct {
-	Value     int `json:"value"`
-	shape     [][]int
+	Value     int     `json:"val"`
+	Shape     [][]int `json:"shape"`
 	flippable bool
 	rotatable bool
 }
@@ -12,9 +12,9 @@ type block struct {
 func (block *block) ToString() string {
 
 	str := ""
-	for i := 0; i < len(block.shape); i++ {
-		for j := 0; j < len(block.shape[i]); j++ {
-			if block.shape[i][j] > 0 {
+	for i := 0; i < len(block.Shape); i++ {
+		for j := 0; j < len(block.Shape[i]); j++ {
+			if block.Shape[i][j] > 0 {
 				str += "x"
 			} else {
 				str += "0"
@@ -32,8 +32,8 @@ func (block *block) Rotate() {
 		fmt.Println(block.ToString())
 		return
 	}
-	j := len(block.shape)
-	i := len(block.shape[0])
+	j := len(block.Shape)
+	i := len(block.Shape[0])
 
 	nshape := make([][]int, i)
 	for k := range nshape {
@@ -44,12 +44,12 @@ func (block *block) Rotate() {
 
 		for x := 0; x < i; x++ {
 
-			nshape[x][j-1-y] = block.shape[y][x]
+			nshape[x][j-1-y] = block.Shape[y][x]
 
 		}
 	}
 
-	block.shape = nshape
+	block.Shape = nshape
 	fmt.Println(block.ToString())
 }
 
@@ -59,8 +59,8 @@ func (block *block) Flip() {
 		fmt.Println(block.ToString())
 		return
 	}
-	j := len(block.shape)
-	i := len(block.shape[0])
+	j := len(block.Shape)
+	i := len(block.Shape[0])
 
 	nshape := make([][]int, j)
 	for k := range nshape {
@@ -71,12 +71,12 @@ func (block *block) Flip() {
 
 		for x := 0; x < i; x++ {
 
-			nshape[y][i-1-x] = block.shape[y][x]
+			nshape[y][i-1-x] = block.Shape[y][x]
 
 		}
 	}
 
-	block.shape = nshape
+	block.Shape = nshape
 	fmt.Println(block.ToString())
 }
 
@@ -86,16 +86,16 @@ func (block *block) is_corner(i int, j int) bool {
 	c3 := 0
 	c4 := 0
 	if j > 0 {
-		c1 = block.shape[j-1][i]
+		c1 = block.Shape[j-1][i]
 	}
-	if len(block.shape[0])-1 > i {
-		c2 = block.shape[j][i+1]
+	if len(block.Shape[0])-1 > i {
+		c2 = block.Shape[j][i+1]
 	}
-	if len(block.shape)-1 > j {
-		c3 = block.shape[j+1][i]
+	if len(block.Shape)-1 > j {
+		c3 = block.Shape[j+1][i]
 	}
 	if i > 0 {
-		c4 = block.shape[j][i-1]
+		c4 = block.Shape[j][i-1]
 	}
 
 	if ((c1 + c2) == 0) || ((c2 + c3) == 0) || ((c3 + c4) == 0) || ((c4 + c1) == 0) {

@@ -1,8 +1,8 @@
 package blockus
 
 type Game struct {
-	PlayerA     player
-	PlayerB     player
+	PlayerA     *player
+	PlayerB     *player
 	Board       *board
 	moves_taken int
 }
@@ -29,4 +29,12 @@ func (game *Game) Move(player *player, block *block, x int, y int) {
 
 	game.Board.Put(block, x, y)
 
+}
+
+func (game *Game) Check(player *player, block *block, x int, y int) bool {
+
+	if game.Board.is_allowed(block, x, y) {
+		return true
+	}
+	return false
 }

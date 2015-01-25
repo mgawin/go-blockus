@@ -16,19 +16,19 @@ func NewBoard() *board {
 
 }
 
-func (board *board) Is_allowed(block *block, x int, y int) bool {
+func (board *board) is_allowed(block *block, x int, y int) bool {
 
-	if x+len(block.shape[0]) > 13 {
+	if x+len(block.Shape[0]) > 13 {
 		return false
 	}
-	if y+len(block.shape) > 13 {
+	if y+len(block.Shape) > 13 {
 		return false
 	}
 
-	for j := 0; j < len(block.shape); j++ {
-		for i := 0; i < len(block.shape[j]); i++ {
+	for j := 0; j < len(block.Shape); j++ {
+		for i := 0; i < len(block.Shape[j]); i++ {
 
-			if (block.shape[j][i] > 0) && (board.Field[y+j][x+i] > 0 || board.touch_edge(x+i, y+j, block.shape[j][i])) {
+			if (block.Shape[j][i] > 0) && (board.Field[y+j][x+i] > 0 || board.touch_edge(x+i, y+j, block.Shape[j][i])) {
 				return false
 			}
 		}
@@ -38,12 +38,12 @@ func (board *board) Is_allowed(block *block, x int, y int) bool {
 		return true
 	}
 
-	for j := 0; j < len(block.shape); j++ {
-		for i := 0; i < len(block.shape[0]); i++ {
+	for j := 0; j < len(block.Shape); j++ {
+		for i := 0; i < len(block.Shape[0]); i++ {
 
-			if block.shape[j][i] > 0 {
+			if block.Shape[j][i] > 0 {
 				if block.is_corner(i, j) {
-					if board.touch_corner(x+i, y+j, block.shape[j][i]) {
+					if board.touch_corner(x+i, y+j, block.Shape[j][i]) {
 						return true
 					}
 
@@ -75,13 +75,13 @@ func (board *board) ToString() string {
 
 func (board *board) Put(block *block, x int, y int) error {
 
-	if !board.Is_allowed(block, x, y) {
+	if !board.is_allowed(block, x, y) {
 		return errors.New("Illegal move.")
 	}
-	for j := 0; j < len(block.shape); j++ {
-		for i := 0; i < len(block.shape[j]); i++ {
+	for j := 0; j < len(block.Shape); j++ {
+		for i := 0; i < len(block.Shape[j]); i++ {
 
-			board.Field[y+j][x+i] = block.shape[j][i]
+			board.Field[y+j][x+i] = block.Shape[j][i]
 
 		}
 
