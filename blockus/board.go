@@ -4,7 +4,7 @@ import "strconv"
 import "errors"
 
 type board struct {
-	field [14][14]int
+	Field [14][14]int
 	count int
 }
 
@@ -16,7 +16,7 @@ func NewBoard() *board {
 
 }
 
-func (board *board) IsAllowed(block *block, x int, y int) bool {
+func (board *board) Is_allowed(block *block, x int, y int) bool {
 
 	if x+len(block.shape[0]) > 13 {
 		return false
@@ -28,7 +28,7 @@ func (board *board) IsAllowed(block *block, x int, y int) bool {
 	for j := 0; j < len(block.shape); j++ {
 		for i := 0; i < len(block.shape[j]); i++ {
 
-			if (block.shape[j][i] > 0) && (board.field[y+j][x+i] > 0 || board.touch_edge(x+i, y+j, block.shape[j][i])) {
+			if (block.shape[j][i] > 0) && (board.Field[y+j][x+i] > 0 || board.touch_edge(x+i, y+j, block.shape[j][i])) {
 				return false
 			}
 		}
@@ -64,7 +64,7 @@ func (board *board) ToString() string {
 	res := ""
 	for i := 0; i < 14; i++ {
 		for j := 0; j < 14; j++ {
-			res += strconv.Itoa(board.field[i][j])
+			res += strconv.Itoa(board.Field[i][j])
 
 		}
 		res += "\n"
@@ -75,13 +75,13 @@ func (board *board) ToString() string {
 
 func (board *board) Put(block *block, x int, y int) error {
 
-	if !board.IsAllowed(block, x, y) {
+	if !board.Is_allowed(block, x, y) {
 		return errors.New("Illegal move.")
 	}
 	for j := 0; j < len(block.shape); j++ {
 		for i := 0; i < len(block.shape[j]); i++ {
 
-			board.field[y+j][x+i] = block.shape[j][i]
+			board.Field[y+j][x+i] = block.shape[j][i]
 
 		}
 
@@ -98,16 +98,16 @@ func (board *board) touch_corner(i int, j int, value int) bool {
 	c4 := 0
 
 	if j > 0 && i < 13 {
-		c1 = board.field[j-1][i+1]
+		c1 = board.Field[j-1][i+1]
 	}
 	if j < 13 && i < 13 {
-		c2 = board.field[j+1][i+1]
+		c2 = board.Field[j+1][i+1]
 	}
 	if j < 13 && i > 0 {
-		c3 = board.field[j+1][i-1]
+		c3 = board.Field[j+1][i-1]
 	}
 	if i > 0 && j > 0 {
-		c4 = board.field[j-1][i-1]
+		c4 = board.Field[j-1][i-1]
 	}
 	if (c4 == value) || (c3 == value) || (c2 == value) || (c1 == value) {
 
@@ -125,16 +125,16 @@ func (board *board) touch_edge(i int, j int, value int) bool {
 	c4 := 0
 
 	if j > 0 {
-		c1 = board.field[j-1][i]
+		c1 = board.Field[j-1][i]
 	}
 	if i < 13 {
-		c2 = board.field[j][i+1]
+		c2 = board.Field[j][i+1]
 	}
 	if j < 13 {
-		c3 = board.field[j+1][i]
+		c3 = board.Field[j+1][i]
 	}
 	if i > 0 {
-		c4 = board.field[j][i-1]
+		c4 = board.Field[j][i-1]
 	}
 
 	if (c4 == value) || (c3 == value) || (c2 == value) || (c1 == value) {

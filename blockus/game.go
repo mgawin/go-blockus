@@ -1,32 +1,32 @@
 package blockus
 
-type game struct {
+type Game struct {
 	PlayerA     player
 	PlayerB     player
-	board       *board
+	Board       *board
 	moves_taken int
 }
 
-func NewGame(name1 string, name2 string) *game {
-	game := new(game)
+func NewGame(name1 string, name2 string) *Game {
+	game := new(Game)
 	game.PlayerB = NewPlayer(name1, 1)
 	game.PlayerA = NewPlayer(name2, 2)
-	game.board = NewBoard()
+	game.Board = NewBoard()
 	return game
 
 }
 
-func (game *game) ToString() string {
+func (game *Game) ToString() string {
 
 	str := "Blockus Game\n"
-	str += game.PlayerA.name + " vs. " + game.PlayerB.name
-	str += "\n\n" + game.board.ToString() + "\n\n"
+	str += game.PlayerA.Name + " vs. " + game.PlayerB.Name
+	str += "\n\n" + game.Board.ToString() + "\n\n"
 	str += game.PlayerA.ToString()
 	return str
 }
 
-func (game *game) Move(player *player, block *block, x int, y int) {
+func (game *Game) Move(player *player, block *block, x int, y int) {
 
-	game.board.Put(block, x, y)
+	game.Board.Put(block, x, y)
 
 }

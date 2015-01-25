@@ -3,7 +3,7 @@ package blockus
 import "fmt"
 
 type block struct {
-	value     int
+	Value     int `json:"value"`
 	shape     [][]int
 	flippable bool
 	rotatable bool
