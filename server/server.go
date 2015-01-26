@@ -3,14 +3,14 @@ package server
 import (
 	"blockus_game/blockus"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
+	"log"
+	"fmt"
 )
 
 func Start() {
 
-	fmt.Println("Blockus server started.")
 
 	container := game_container{}
 	container.games = make(map[string]*blockus.Game)
@@ -18,8 +18,15 @@ func Start() {
 	http.HandleFunc("/new", container.create)
 	http.HandleFunc("/status", container.status)
 	http.HandleFunc("/check", container.is_allowed)
+	
+	fs := http.FileServer(http.Dir("client"))
+  	http.Handle("/client/",http.StripPrefix("/client/", fs))
+	log.Println("Blockus server started.")
 
 	http.ListenAndServe(":8080", nil)
+	
+
+
 
 }
 
