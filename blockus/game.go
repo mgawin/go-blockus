@@ -25,16 +25,35 @@ func (game *Game) ToString() string {
 	return str
 }
 
-func (game *Game) Move(player *player, block *block, x int, y int) {
+func (game *Game) Move(block *block, x int, y int) {
 
 	game.Board.Put(block, x, y)
 
 }
 
-func (game *Game) Check(player *player, block *block, x int, y int) bool {
+func (game *Game) Check(block *block, x int, y int) bool {
 
 	if game.Board.is_allowed(block, x, y) {
 		return true
 	}
 	return false
+}
+
+func (game *Game) Get_allowed_moves(block *block) [][2]int {
+
+	result := [][2]int{}
+
+	for i := 0; i < 14; i++ {
+		for j := 0; j < 14; j++ {
+
+			if game.Board.is_allowed(block, i, j) {
+				coords := [2]int{i, j}
+				result = append(result, coords)
+			}
+
+		}
+
+	}
+	return result
+
 }

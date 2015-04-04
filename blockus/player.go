@@ -27,7 +27,7 @@ func NewPlayer(name string, id int) *player {
 	player.Blocks[11] = &block{Value: 5, Shape: [][]int{{id, 0, 0}, {id, 0, 0}, {id, id, id}}, flippable: true, rotatable: true}
 	player.Blocks[12] = &block{Value: 5, Shape: [][]int{{0, id, id, id}, {id, id, 0, 0}}, flippable: true, rotatable: true}
 	player.Blocks[13] = &block{Value: 5, Shape: [][]int{{0, 0, id}, {id, id, id}, {id, 0, 0}}, flippable: true, rotatable: true}
-	player.Blocks[14] = &block{Value: 5, Shape: [][]int{{id}, {id}, {id}, {id}, {id}}, flippable: false, rotatable: true}
+	player.Blocks[14] = &block{Value: 5, Shape: [][]int{{id, id, id, id, id}}, flippable: false, rotatable: true}
 	player.Blocks[15] = &block{Value: 5, Shape: [][]int{{id, 0}, {id, id}, {id, id}}, flippable: true, rotatable: true}
 	player.Blocks[16] = &block{Value: 5, Shape: [][]int{{0, id, id}, {id, id, 0}, {id, 0, 0}}, flippable: true, rotatable: true}
 	player.Blocks[17] = &block{Value: 5, Shape: [][]int{{id, id}, {id, 0}, {id, id}}, flippable: true, rotatable: true}

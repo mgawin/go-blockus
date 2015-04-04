@@ -18,10 +18,10 @@ func NewBoard() *board {
 
 func (board *board) is_allowed(block *block, x int, y int) bool {
 
-	if x+len(block.Shape[0]) > 13 {
+	if x+len(block.Shape[0])-1 > 13 {
 		return false
 	}
-	if y+len(block.Shape) > 13 {
+	if y+len(block.Shape)-1 > 13 {
 		return false
 	}
 
@@ -34,8 +34,21 @@ func (board *board) is_allowed(block *block, x int, y int) bool {
 		}
 	}
 
-	if board.count == 0 {
-		return true
+	if board.count < 1 {
+		cov := false
+		for j := 0; j < len(block.Shape); j++ {
+			for i := 0; i < len(block.Shape[j]); i++ {
+
+				if ((y+j == 9) && (x+i == 4)) || ((y+j == 4) && (x+i == 9)) {
+					if block.Shape[j][i] > 0 {
+
+						cov = true
+
+					}
+				}
+			}
+		}
+		return cov
 	}
 
 	for j := 0; j < len(block.Shape); j++ {

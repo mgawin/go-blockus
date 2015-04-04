@@ -7,6 +7,7 @@ type block struct {
 	Shape     [][]int `json:"shape"`
 	flippable bool
 	rotatable bool
+	rotate    int
 }
 
 func (block *block) ToString() string {
@@ -29,7 +30,6 @@ func (block *block) ToString() string {
 
 func (block *block) Rotate() {
 	if !block.rotatable {
-		fmt.Println(block.ToString())
 		return
 	}
 	j := len(block.Shape)
@@ -48,9 +48,11 @@ func (block *block) Rotate() {
 
 		}
 	}
-
+	block.rotate += 1
+	if block.rotate > 3 {
+		block.rotate = 0
+	}
 	block.Shape = nshape
-	fmt.Println(block.ToString())
 }
 
 func (block *block) Flip() {
@@ -77,7 +79,6 @@ func (block *block) Flip() {
 	}
 
 	block.Shape = nshape
-	fmt.Println(block.ToString())
 }
 
 func (block *block) is_corner(i int, j int) bool {
@@ -102,4 +103,13 @@ func (block *block) is_corner(i int, j int) bool {
 		return true
 	}
 	return false
+}
+
+func (block *block) Get_offset(new_rotate int) int {
+
+	k := new_rotate - block.rotate
+	if k < 0 {
+		k = 4 + k
+	}
+	return k
 }
