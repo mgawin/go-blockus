@@ -1,9 +1,13 @@
 package blockus
 
+import (
+	"encoding/json"
+	)
+
 type Game struct {
-	PlayerA     *player
-	PlayerB     *player
-	Board       *board
+	PlayerA     player
+	PlayerB     player
+	Board       board
 	moves_taken int
 }
 
@@ -23,6 +27,22 @@ func (game *Game) ToString() string {
 	str += "\n\n" + game.Board.ToString() + "\n\n"
 	str += game.PlayerA.ToString()
 	return str
+}
+
+func (game *Game) ToJSON() []byte {
+	str,_:=json.Marshal(game)
+	
+	return str	
+	
+}
+
+func FromJSON(s []byte) (Game, error) {
+	var game Game
+	err:=json.Unmarshal(s, &game)
+	
+	return game, err
+	
+	
 }
 
 func (game *Game) Move(block *block, x int, y int) {

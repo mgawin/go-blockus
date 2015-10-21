@@ -8,7 +8,7 @@ type player struct {
 	Blocks []*block
 }
 
-func NewPlayer(name string, id int) *player {
+func NewPlayer(name string, id int) player {
 
 	player := player{Name: name}
 	player.id = id
@@ -34,7 +34,7 @@ func NewPlayer(name string, id int) *player {
 	player.Blocks[18] = &block{Value: 5, Shape: [][]int{{0, id, id}, {id, id, 0}, {0, id, 0}}, flippable: true, rotatable: true}
 	player.Blocks[19] = &block{Value: 5, Shape: [][]int{{0, id, 0}, {id, id, id}, {0, id, 0}}, flippable: false, rotatable: false}
 	player.Blocks[20] = &block{Value: 5, Shape: [][]int{{0, id, 0, 0}, {id, id, id, id}}, flippable: true, rotatable: true}
-	return &player
+	return player
 
 }
 

@@ -5,18 +5,19 @@ import "errors"
 
 type board struct {
 	Field [14][14]int
-	count int
+	Count int
 }
 
-func NewBoard() *board {
+func NewBoard() board {
 
-	board := new(board)
-	board.count = 0
+	board := board{}
+	board.Count = 0
 	return board
 
 }
 
 func (board *board) is_allowed(block *block, x int, y int) bool {
+
 
 	if x+len(block.Shape[0])-1 > 13 {
 		return false
@@ -34,7 +35,7 @@ func (board *board) is_allowed(block *block, x int, y int) bool {
 		}
 	}
 
-	if board.count < 1 {
+	if board.Count < 2 {
 		cov := false
 		for j := 0; j < len(block.Shape); j++ {
 			for i := 0; i < len(block.Shape[j]); i++ {
@@ -44,20 +45,24 @@ func (board *board) is_allowed(block *block, x int, y int) bool {
 
 						cov = true
 
+		
 					}
 				}
 			}
 		}
+		
 		return cov
 	}
-
 	for j := 0; j < len(block.Shape); j++ {
 		for i := 0; i < len(block.Shape[0]); i++ {
 
 			if block.Shape[j][i] > 0 {
 				if block.is_corner(i, j) {
 					if board.touch_corner(x+i, y+j, block.Shape[j][i]) {
+						
 						return true
+						
+						
 					}
 
 				}
@@ -99,7 +104,8 @@ func (board *board) Put(block *block, x int, y int) error {
 		}
 
 	}
-	board.count++
+	
+	board.Count++
 	return nil
 }
 

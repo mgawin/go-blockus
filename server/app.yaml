@@ -1,0 +1,10 @@
+application: go-blockus
+module: default
+version: v1
+api_version: go1
+runtime: go
+
+handlers:
+- url: /_ah/spi/.*
+  script: _go_app
+  secure: always

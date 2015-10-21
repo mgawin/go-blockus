@@ -8,13 +8,13 @@ app.factory('backendService', function($http) {
     },
     init: function() {
      
-      var promise = $http.get('https://golang-mgawin.c9.io/new').then(function (response) {
+      var promise = $http.get('https://golang-mgawin.c9.io/_ah/api/blockus/v1/new').then(function (response) {
         return response.data;
       });
       return promise;
     },
     getMoves: function(gid,pid,bid,rotates){
-      var promise = $http.get('https://golang-mgawin.c9.io/moves?gid='+gid+'&pid='+pid+'&bid='+bid+'&rotates='+rotates).then(function (response) {
+      var promise = $http.get('https://golang-mgawin.c9.io/_ah/api/blockus/v1/moves?gid='+gid+'&pid='+pid+'&bid='+bid+'&rotates='+rotates).then(function (response) {
         return response.data;
       
       })
@@ -22,7 +22,7 @@ app.factory('backendService', function($http) {
       return promise;
     },
     doMove: function(gid,pid,bid,rotates,x,y){
-      var promise = $http.get('https://golang-mgawin.c9.io/move?gid='+gid+'&pid='+pid+'&bid='+bid+'&rotates='+rotates+'&x='+x+'&y='+y).then(function (response) {
+      var promise = $http.post('https://golang-mgawin.c9.io/_ah/api/blockus/v1/move?gid='+gid+'&pid='+pid+'&bid='+bid+'&rotates='+rotates+'&x='+x+'&y='+y).then(function (response) {
         return response.data;
       
       })

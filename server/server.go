@@ -1,181 +1,201 @@
 package server
 
 import (
-	"blockus_game/blockus"
-	"encoding/json"
-	"fmt"
+	"appengine/datastore"
+	"github.com/GoogleCloudPlatform/go-endpoints/endpoints"
 	"log"
-	"net/http"
-	"strconv"
+	"blockus_game/blockus"
 	"time"
+	"strconv"
 )
-
-func Start() {
-
-	container := game_container{}
-	container.games = make(map[string]*blockus.Game)
-
-	http.HandleFunc("/new", container.create)
-	http.HandleFunc("/status", container.status)
-	http.HandleFunc("/moves", container.get_allowed_moves)
-	http.HandleFunc("/move", container.do_move)
-
-	fs := http.FileServer(http.Dir("client"))
-	http.Handle("/client/", http.StripPrefix("/client/", fs))
-	log.Println("Blockus server started.")
-
-	http.ListenAndServe(":8080", nil)
-
-}
-
-type game_container struct {
-	games map[string]*blockus.Game
-}
-
-func (cont *game_container) create(w http.ResponseWriter, r *http.Request) {
-
-	game := blockus.NewGame("Jack", "Jason")
-	id := "10" + strconv.Itoa(len(cont.games))
-	cont.games[id] = game
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	content, _ := json.Marshal(&game)
-	pid := "0"
-	fmt.Fprint(w, "{\"gid\":"+id+",\"pid\":"+pid+",\"game\":"+string(content)+"}")
-	return
-}
-
-func (container *game_container) status(w http.ResponseWriter, r *http.Request) {
-
-	id := r.URL.Query()["id"]
-	game, ok := container.games[id[0]]
-	if !ok {
-		http.Error(w, "Game doesn't exist", http.StatusNotFound)
-		return
+type BlockusAPI struct{
+	
 	}
-	content, _ := json.Marshal(&game)
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	fmt.Fprint(w, string(content))
-	return
+	
+type GameCache struct{
+	Games []blockus.Game	
 }
 
-func (container *game_container) get_allowed_moves(w http.ResponseWriter, r *http.Request) {
+var cache = GameCache{}
+
+func init() {
+
+	api, err := endpoints.RegisterService(BlockusAPI{}, "blockus", "v1", "blockus api", true)
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	info := api.MethodByName("Create").Info()
+	info.Name, info.HTTPMethod, info.Path = "NewGame", "GET", "new"
+
+	info = api.MethodByName("GetAllowedMoves").Info()
+	info.Name, info.HTTPMethod, info.Path = "GetAllowedMoves", "GET", "moves"
+
+	info = api.MethodByName("DoMove").Info()
+	info.Name, info.HTTPMethod, info.Path = "DoMove", "POST", "move"
+
+
+	endpoints.HandleHTTP()
+
+}
+
+type NewGameRes struct{
+	Pid string `json:"pid"`
+	UID *datastore.Key `json:"gid"`
+	Game *blockus.Game  `json:"game"`
+	
+}
+
+type HibernatedGame struct{
+	JSON []byte
+
+}
+
+
+func (BlockusAPI) Create(c endpoints.Context)  (*NewGameRes,error){
+	
+	res:= NewGameRes{}
+	res.Game = blockus.NewGame("Jack", "Jason")
+	res.UID, _ = cache.StoreGame(c, res.Game, nil)
+	
+	res.Pid = "0"
+	return &res,nil
+	
+}
+
+func (cache *GameCache) StoreGame(c endpoints.Context, game *blockus.Game, k *datastore.Key) (*datastore.Key, error){
+	
+	str:=HibernatedGame{JSON: game.ToJSON()}
+	key:=k
+	if k==nil {
+		key = datastore.NewIncompleteKey(c, "Game", nil)
+	} 
+	
+	key, err := datastore.Put(c, key, &str)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
+}
+
+
+type MovesReq struct{
+	PID string `json:"pid"`
+	UID *datastore.Key `json:"gid"`
+	BID string `json:"bid"`
+	Rotates string `json:"rotates"`
+}
+
+
+
+type MovesRes struct{
+	Moves [][2]int `json:"moves"`
+	
+}
+
+func (BlockusAPI) GetAllowedMoves(c endpoints.Context,r *MovesReq)  (*MovesRes,error){
 	t0:=time.Now()
 	defer log.Println(time.Since(t0).String())
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	if (len(r.URL.Query()["gid"]) == 0) || (len(r.URL.Query()["pid"]) == 0) || (len(r.URL.Query()["bid"]) == 0) ||
-		(len(r.URL.Query()["rotates"]) == 0) {
-		w.WriteHeader(http.StatusNotAcceptable)
-		return
-	}
+	res:=MovesRes{}
 
-	gid := r.URL.Query()["gid"][0]
-	bid, _ := strconv.Atoi(r.URL.Query()["bid"][0])
-	pid, _ := strconv.Atoi(r.URL.Query()["pid"][0])
-	rotates, _ := strconv.Atoi(r.URL.Query()["rotates"][0])
 
-	game, ok := container.games[gid]
-	if !ok {
-		http.Error(w, "Game doesn't exist", http.StatusNotFound)
-		return
+	var storedGame HibernatedGame
+	
+	if err := datastore.Get(c, r.UID, &storedGame); err == datastore.ErrNoSuchEntity {
+		return nil, endpoints.NewNotFoundError("game not found")
+	} else if err != nil {
+		return nil, err
 	}
-	if pid > 1 {
-		http.Error(w, "Invalid player id", http.StatusNotFound)
-		return
-	}
+	game,_:=blockus.FromJSON(storedGame.JSON)
+	
 	player := game.PlayerB
-	if pid > 0 {
+	if i,_:=strconv.Atoi(r.PID); i > 0 {
 		player = game.PlayerA
 	}
 
-	if bid >= len(player.Blocks) {
-		http.Error(w, "Invalid block id", http.StatusNotFound)
-		return
+	j,_:=strconv.Atoi(r.BID);
+	if  j>= len(player.Blocks) {
+		return nil, endpoints.NewNotFoundError("game not found")
+	}
+	l,_:=strconv.Atoi(r.Rotates);
+	if  l >= 4 || l < 0 {
+		return nil, endpoints.NewNotFoundError("game not found")
 	}
 
-	if rotates >= 4 || rotates < 0 {
-		http.Error(w, "Invalid rotate parameter", http.StatusNotFound)
-		return
-	}
-
-	block := player.Blocks[bid]
-	for k := 0; k < block.Get_offset(rotates); k++ {
+	block := player.Blocks[j]
+	for k := 0; k < block.Get_offset(l); k++ {
 		block.Rotate()
 
 	}
-	response, _ := json.Marshal(game.Get_allowed_moves(block))
-
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, string(response))
+	res.Moves = game.Get_allowed_moves(block)
+	return &res,nil
 
 }
 
-func (container *game_container) do_move(w http.ResponseWriter, r *http.Request) {
-	t0:=time.Now()
-	defer log.Println(time.Since(t0).String())
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	if (len(r.URL.Query()["gid"]) == 0) || (len(r.URL.Query()["pid"]) == 0) || (len(r.URL.Query()["bid"]) == 0) ||
-		(len(r.URL.Query()["rotates"]) == 0) {
-		w.WriteHeader(http.StatusNotAcceptable)
-		return
-	}
+type DoMoveReq struct{
+	PID string `json:"pid"`
+	UID *datastore.Key `json:"gid"`
+	BID string `json:"bid"`
+	Rotates string `json:"rotates"`
+	X string `json:"x"`
+	Y string `json:"y"`
+}
 
-	gid := r.URL.Query()["gid"][0]
-	bid, _ := strconv.Atoi(r.URL.Query()["bid"][0])
-	pid, _ := strconv.Atoi(r.URL.Query()["pid"][0])
-	rotates, _ := strconv.Atoi(r.URL.Query()["rotates"][0])
-	x, _ := strconv.Atoi(r.URL.Query()["x"][0])
-	y, _ := strconv.Atoi(r.URL.Query()["y"][0])
 
-	game, ok := container.games[gid]
-	if !ok {
-		http.Error(w, "Game doesn't exist", http.StatusNotFound)
-		return
+func (BlockusAPI) DoMove(c endpoints.Context,r *DoMoveReq)  error {
+
+	var storedGame HibernatedGame
+	
+	if err := datastore.Get(c, r.UID, &storedGame); err == datastore.ErrNoSuchEntity {
+		return  endpoints.NewNotFoundError("game not found")
+	} else if err != nil {
+		return  err
 	}
-	if pid > 1 {
-		http.Error(w, "Invalid player id", http.StatusNotFound)
-		return
-	}
+	game,_:=blockus.FromJSON(storedGame.JSON)
+	
 	player := game.PlayerB
-	if pid > 0 {
+	if i,_:=strconv.Atoi(r.PID); i > 0 {
 		player = game.PlayerA
 	}
 
-	if bid >= len(player.Blocks) {
-		http.Error(w, "Invalid block id", http.StatusNotFound)
-		return
+	j,_:=strconv.Atoi(r.BID);
+	if  j>= len(player.Blocks) {
+		return endpoints.NewNotFoundError("game not found")
+	}
+	l,_:=strconv.Atoi(r.Rotates);
+	if  l >= 4 || l < 0 {
+		return  endpoints.NewNotFoundError("game not found")
+	}
+	
+	x,_:=strconv.Atoi(r.X);
+	
+	if x >= 14 || x < 0 {
+		return endpoints.NewNotFoundError("game not found")
 	}
 
-	if x >= 14 || x < 0 {
-		http.Error(w, "Invalid coordinates", http.StatusNotFound)
-		return
-	}
+	y,_:=strconv.Atoi(r.Y);
 
 	if y >= 14 || y < 0 {
-		http.Error(w, "Invalid coordinates", http.StatusNotFound)
-		return
+		return endpoints.NewNotFoundError("game not found")
 	}
 
-	if rotates >= 4 || rotates < 0 {
-		http.Error(w, "Invalid rotate parameter", http.StatusNotFound)
-		return
-	}
-
-	block := player.Blocks[bid]
-	for k := 0; k < block.Get_offset(rotates); k++ {
+	block := player.Blocks[j]
+	for k := 0; k < block.Get_offset(l); k++ {
 		block.Rotate()
 
 	}
-
+	
 	if game.Check(block, x, y) {
 
-		go game.Move(block, x, y)
-		w.WriteHeader(http.StatusCreated)
+		 game.Move(block, x, y)
+		 _, err := cache.StoreGame(c, &game, r.UID)
+		log.Println(err)
+		return nil
+		
 	} else {
-
-		http.Error(w, "Invalid game status", http.StatusInternalServerError)
-		return
+		return endpoints.NewNotFoundError("game not found")
 	}
 }
+
+

@@ -52,15 +52,13 @@ var app = angular.module('blockusApp', [])
     });
 
     rect.fillColor.alpha = 0.5;
-    paper.view.draw();
 
 
     $scope.getMoves = function() {
 
       $scope.allowed_moves = [];
       backendService.getMoves($scope.gameId, $scope.playerId, selected.bid, selected.orientation_id).then(function(data) {
-        $scope.allowed_moves = data;
-        //      console.log($scope.allowed_moves.length)
+        $scope.allowed_moves = data.moves;
 
       })
 
@@ -158,15 +156,16 @@ var app = angular.module('blockusApp', [])
 
         };
 
-        group.position = new paper.Point(x, y);
-        group.initialPosition = group.position;
 
 
         group.onMouseDown = function() {
+          console.log("down");
           if (this.locked) return;
+
           if ((selected == null) || (selected.bid != this.bid)) {
             selected = this;
             $scope.getMoves();
+            console.log("I'm selected");
           }
 
           if (event.detail == 2) {
@@ -176,39 +175,14 @@ var app = angular.module('blockusApp', [])
             $scope.getMoves();
 
             this.rotate(90, this.center);
-
+            console.log("I'm rotated");
           }
           if (event.detail == 1) {
             this.opacity = 1;
             this.bringToFront();
-
           };
         };
 
-        group.onMouseUp = function() {
-
-          this.opacity = 0.75;
-
-          if (this.bid != selected.bid) return;
-          var x = calculate_coords(selected.bounds.left, true);
-          var y = calculate_coords(selected.bounds.top, false);
-          console.log(x, y)
-
-          if (move_allowed(x, y)) {
-            $scope.doMove(x, y)
-            this.locked = true;
-            console.log('allowed')
-
-          }
-          else {
-
-            console.log('not allowed')
-
-            //    this.locked=true;
-            this.position = this.initialPosition;
-
-          };
-        }
 
         group.onMouseDrag = function(event) {
           if (this.locked) return;
@@ -221,10 +195,40 @@ var app = angular.module('blockusApp', [])
             this.position = new paper.Point(offsetx + (Math.round((this.position.x - offsetx) / grid) * grid),
               offsety + (Math.round((this.position.y - offsety) / grid) * grid));
           };
-
+          console.log("I'm dragged");
         };
 
+
+        group.onMouseUp = function() {
+          console.log("up");
+
+          this.opacity = 0.75;
+          if (this.bid != selected.bid) return;
+          console.log("I'm dropped");
+
+          var x = calculate_coords(selected.bounds.left, true);
+          var y = calculate_coords(selected.bounds.top, false);
+
+          if (move_allowed(x, y)) {
+            $scope.doMove(x, y)
+            this.locked = true;
+            console.log('allowed')
+
+          }
+          else {
+
+            console.log('not allowed')
+            this.position = this.initialPosition;
+
+          };
+        }
+        group.position = new paper.Point(x, y);
+        group.initialPosition = group.position;
+
+
       });
+
+      paper.view.draw();
 
     };
 
