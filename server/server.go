@@ -1,22 +1,20 @@
 package server
 
 import (
-	"appengine/datastore"
-	"github.com/GoogleCloudPlatform/go-endpoints/endpoints"
-	"log"
 	"blockus_game/blockus"
-	"time"
+	"github.com/GoogleCloudPlatform/go-endpoints/endpoints"
+	"golang.org/x/net/context"
+	"google.golang.org/appengine/datastore"
+	"log"
 	"strconv"
+	"time"
 )
-type BlockusAPI struct{
-	
-	}
-	
-type GameCache struct{
-	Games []blockus.Game	
+
+type BlockusAPI struct {
 }
 
-var cache = GameCache{}
+var manager *blockus.Manager
+var db *AppengineStore
 
 func init() {
 
@@ -24,7 +22,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	info := api.MethodByName("Create").Info()
 	info.Name, info.HTTPMethod, info.Path = "NewGame", "GET", "new"
 
@@ -34,92 +32,85 @@ func init() {
 	info = api.MethodByName("DoMove").Info()
 	info.Name, info.HTTPMethod, info.Path = "DoMove", "POST", "move"
 
+	db = new(AppengineStore)
+	manager = blockus.Init(db)
 
 	endpoints.HandleHTTP()
 
 }
 
-type NewGameRes struct{
-	Pid string `json:"pid"`
-	UID *datastore.Key `json:"gid"`
-	Game *blockus.Game  `json:"game"`
-	
+type NewGameRes struct {
+	Pid  *int          `json:"pid"`
+	GID  *string       `json:"gid"`
+	Game *blockus.Game `json:"game"`
 }
 
-type HibernatedGame struct{
-	JSON []byte
-
-}
-
-
-func (BlockusAPI) Create(c endpoints.Context)  (*NewGameRes,error){
-	
-	res:= NewGameRes{}
-	res.Game = blockus.NewGame("Jack", "Jason")
-	res.UID, _ = cache.StoreGame(c, res.Game, nil)
-	
-	res.Pid = "0"
-	return &res,nil
-	
-}
-
-func (cache *GameCache) StoreGame(c endpoints.Context, game *blockus.Game, k *datastore.Key) (*datastore.Key, error){
-	
-	str:=HibernatedGame{JSON: game.ToJSON()}
-	key:=k
-	if k==nil {
-		key = datastore.NewIncompleteKey(c, "Game", nil)
-	} 
-	
-	key, err := datastore.Put(c, key, &str)
+func (BlockusAPI) Create(c context.Context) (*NewGameRes, error) {
+	db.SetContext(c)
+	res := NewGameRes{}
+	var err error
+	res.GID, res.Game, res.Pid, err = manager.DispatchPlayer()
 	if err != nil {
 		return nil, err
 	}
-	return key, nil
+	return &res, nil
 }
 
-
-type MovesReq struct{
-	PID string `json:"pid"`
-	UID *datastore.Key `json:"gid"`
-	BID string `json:"bid"`
+type MovesReq struct {
+	PID     string `json:"pid"`
+	GID     string `json:"gid"`
+	BID     string `json:"bid"`
 	Rotates string `json:"rotates"`
 }
 
-
-
-type MovesRes struct{
+type MovesRes struct {
 	Moves [][2]int `json:"moves"`
-	
 }
 
-func (BlockusAPI) GetAllowedMoves(c endpoints.Context,r *MovesReq)  (*MovesRes,error){
-	t0:=time.Now()
+func (BlockusAPI) GetAllowedMoves(c context.Context, r *MovesReq) (*MovesRes, error) {
+
+	if len(r.BID) == 0 || len(r.GID) == 0 || len(r.Rotates) == 0 || len(r.PID) == 0 {
+
+		return nil, endpoints.NewBadRequestError("Missing parameters")
+
+	}
+
+	db.SetContext(c)
+
+	t0 := time.Now()
 	defer log.Println(time.Since(t0).String())
 
-	res:=MovesRes{}
+	res := MovesRes{}
 
+	game, err := manager.GetGame(&r.GID)
 
-	var storedGame HibernatedGame
-	
-	if err := datastore.Get(c, r.UID, &storedGame); err == datastore.ErrNoSuchEntity {
+	switch {
+
+	case err == datastore.ErrNoSuchEntity:
 		return nil, endpoints.NewNotFoundError("game not found")
-	} else if err != nil {
-		return nil, err
+
+	case err == datastore.ErrInvalidKey:
+		return nil, endpoints.NewNotFoundError("Invalid key")
+
+	case err == ErrGenericKeyError:
+		return nil, endpoints.NewNotFoundError("Invalid key")
+
+	case err != nil:
+		return nil, endpoints.NewInternalServerError("server error")
+
 	}
-	game,_:=blockus.FromJSON(storedGame.JSON)
-	
+
 	player := game.PlayerB
-	if i,_:=strconv.Atoi(r.PID); i > 0 {
+	if i, _ := strconv.Atoi(r.PID); i > 0 {
 		player = game.PlayerA
 	}
 
-	j,_:=strconv.Atoi(r.BID);
-	if  j>= len(player.Blocks) {
+	j, _ := strconv.Atoi(r.BID)
+	if j >= len(player.Blocks) {
 		return nil, endpoints.NewNotFoundError("game not found")
 	}
-	l,_:=strconv.Atoi(r.Rotates);
-	if  l >= 4 || l < 0 {
+	l, _ := strconv.Atoi(r.Rotates)
+	if l >= 4 || l < 0 {
 		return nil, endpoints.NewNotFoundError("game not found")
 	}
 
@@ -129,52 +120,71 @@ func (BlockusAPI) GetAllowedMoves(c endpoints.Context,r *MovesReq)  (*MovesRes,e
 
 	}
 	res.Moves = game.Get_allowed_moves(block)
-	return &res,nil
+	return &res, nil
 
 }
 
-type DoMoveReq struct{
-	PID string `json:"pid"`
-	UID *datastore.Key `json:"gid"`
-	BID string `json:"bid"`
+type DoMoveReq struct {
+	PID     string `json:"pid"`
+	GID     string `json:"gid"`
+	BID     string `json:"bid"`
 	Rotates string `json:"rotates"`
-	X string `json:"x"`
-	Y string `json:"y"`
+	X       string `json:"x"`
+	Y       string `json:"y"`
 }
 
+func (BlockusAPI) DoMove(c context.Context, r *DoMoveReq) error {
 
-func (BlockusAPI) DoMove(c endpoints.Context,r *DoMoveReq)  error {
+	if len(r.BID) == 0 || len(r.GID) == 0 || len(r.Rotates) == 0 || len(r.PID) == 0 || len(r.X) == 0 || len(r.Y) == 0 {
 
-	var storedGame HibernatedGame
-	
-	if err := datastore.Get(c, r.UID, &storedGame); err == datastore.ErrNoSuchEntity {
-		return  endpoints.NewNotFoundError("game not found")
-	} else if err != nil {
-		return  err
+		return endpoints.NewBadRequestError("Missing parameters")
+
 	}
-	game,_:=blockus.FromJSON(storedGame.JSON)
-	
+
+	db.SetContext(c)
+
+	t0 := time.Now()
+	defer log.Println(time.Since(t0).String())
+
+	game, err := manager.GetGame(&r.GID)
+
+	switch {
+
+	case err == datastore.ErrNoSuchEntity:
+		return endpoints.NewNotFoundError("game not found")
+
+	case err == datastore.ErrInvalidKey:
+		return endpoints.NewNotFoundError("Invalid key")
+
+	case err == ErrGenericKeyError:
+		return endpoints.NewNotFoundError("Invalid key")
+
+	case err != nil:
+		return endpoints.NewInternalServerError("server error")
+
+	}
+
 	player := game.PlayerB
-	if i,_:=strconv.Atoi(r.PID); i > 0 {
+	if i, _ := strconv.Atoi(r.PID); i > 0 {
 		player = game.PlayerA
 	}
 
-	j,_:=strconv.Atoi(r.BID);
-	if  j>= len(player.Blocks) {
+	j, _ := strconv.Atoi(r.BID)
+	if j >= len(player.Blocks) {
 		return endpoints.NewNotFoundError("game not found")
 	}
-	l,_:=strconv.Atoi(r.Rotates);
-	if  l >= 4 || l < 0 {
-		return  endpoints.NewNotFoundError("game not found")
+	l, _ := strconv.Atoi(r.Rotates)
+	if l >= 4 || l < 0 {
+		return endpoints.NewNotFoundError("game not found")
 	}
-	
-	x,_:=strconv.Atoi(r.X);
-	
+
+	x, _ := strconv.Atoi(r.X)
+
 	if x >= 14 || x < 0 {
 		return endpoints.NewNotFoundError("game not found")
 	}
 
-	y,_:=strconv.Atoi(r.Y);
+	y, _ := strconv.Atoi(r.Y)
 
 	if y >= 14 || y < 0 {
 		return endpoints.NewNotFoundError("game not found")
@@ -185,17 +195,17 @@ func (BlockusAPI) DoMove(c endpoints.Context,r *DoMoveReq)  error {
 		block.Rotate()
 
 	}
-	
+
 	if game.Check(block, x, y) {
 
-		 game.Move(block, x, y)
-		 _, err := cache.StoreGame(c, &game, r.UID)
-		log.Println(err)
-		return nil
-		
-	} else {
-		return endpoints.NewNotFoundError("game not found")
+		game.Move(block, x, y)
+		err := manager.SaveGame(game, &r.GID)
+		if err != nil {
+			log.Println(err)
+			return endpoints.NewInternalServerError("server error")
+
+		}
+
 	}
+	return nil
 }
-
-

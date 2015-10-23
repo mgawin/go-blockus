@@ -18,7 +18,6 @@ func NewBoard() board {
 
 func (board *board) is_allowed(block *block, x int, y int) bool {
 
-
 	if x+len(block.Shape[0])-1 > 13 {
 		return false
 	}
@@ -45,12 +44,11 @@ func (board *board) is_allowed(block *block, x int, y int) bool {
 
 						cov = true
 
-		
 					}
 				}
 			}
 		}
-		
+
 		return cov
 	}
 	for j := 0; j < len(block.Shape); j++ {
@@ -59,10 +57,9 @@ func (board *board) is_allowed(block *block, x int, y int) bool {
 			if block.Shape[j][i] > 0 {
 				if block.is_corner(i, j) {
 					if board.touch_corner(x+i, y+j, block.Shape[j][i]) {
-						
+
 						return true
-						
-						
+
 					}
 
 				}
@@ -104,7 +101,7 @@ func (board *board) Put(block *block, x int, y int) error {
 		}
 
 	}
-	
+
 	board.Count++
 	return nil
 }

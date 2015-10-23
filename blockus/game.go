@@ -2,7 +2,7 @@ package blockus
 
 import (
 	"encoding/json"
-	)
+)
 
 type Game struct {
 	PlayerA     player
@@ -11,14 +11,14 @@ type Game struct {
 	moves_taken int
 }
 
-func NewGame(name1 string, name2 string) *Game {
-	game := new(Game)
-	game.PlayerB = NewPlayer(name1, 1)
-	game.PlayerA = NewPlayer(name2, 2)
-	game.Board = NewBoard()
-	return game
+// func NewGame(name1 string, name2 string) *Game {
+// 	game := new(Game)
+// 	game.PlayerB = NewPlayer(name1, 1)
+// 	game.PlayerA = NewPlayer(name2, 2)
+// 	game.Board = NewBoard()
+// 	return game
 
-}
+// }
 
 func (game *Game) ToString() string {
 
@@ -30,19 +30,18 @@ func (game *Game) ToString() string {
 }
 
 func (game *Game) ToJSON() []byte {
-	str,_:=json.Marshal(game)
-	
-	return str	
-	
+	str, _ := json.Marshal(game)
+
+	return str
+
 }
 
 func FromJSON(s []byte) (Game, error) {
 	var game Game
-	err:=json.Unmarshal(s, &game)
-	
+	err := json.Unmarshal(s, &game)
+
 	return game, err
-	
-	
+
 }
 
 func (game *Game) Move(block *block, x int, y int) {

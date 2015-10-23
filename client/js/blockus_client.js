@@ -115,7 +115,7 @@ var app = angular.module('blockusApp', [])
       var x = 450;
 
       $scope.blocks.forEach(function(element, index) {
-
+      console.log(element);
         x = x + 120;
         if (x > 450 + 600) {
           x = 450 + 120;
