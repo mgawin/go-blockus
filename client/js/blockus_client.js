@@ -3,9 +3,21 @@ var app = angular.module('blockusApp', [])
 
     backendService.init().then(function(data) {
       $scope.gameId = data.gid;
+      $scope.state = '0'
+      $scope.blocked = true;
       $scope.playerId = data.pid;
-      $scope.blocks = data.game.PlayerA.Blocks;
+      if ($scope.playerId == 1) $scope.blocks = data.game.PlayerA.Blocks;
+      else $scope.blocks = data.game.PlayerB.Blocks;
+
       $scope.positionBlocks();
+      backendService.intervalRepeat(function() {
+        return backendService.getStatus($scope.gameId, $scope.playerId, $scope.manageStatus)
+      });
+
+    });
+
+    $scope.$on('$destroy', function() {
+      intervalPinging.stop();
     });
 
     $scope.blocks = [];
@@ -52,6 +64,92 @@ var app = angular.module('blockusApp', [])
     });
 
     rect.fillColor.alpha = 0.5;
+
+
+
+    $scope.manageStatus = function(promise) {
+
+      promise.then(function(successResponse) {
+          console.log("Got game status code: " + successResponse.data.code);
+          if ($scope.state != successResponse.data.code) {
+            switch (successResponse.data.code) {
+              case '1':
+                $scope.blocked = true;
+                console.log("waiting");
+                break;
+              case '2':
+                console.log("Player A move");
+                if ($scope.playerId == 1) {
+
+                  $scope.blocked = false;
+                  if (successResponse.data.lastmove) $scope.drawMove(successResponse.data.lastmove, '#B164DE');
+
+                }
+                else $scope.blocked = true;
+
+                break;
+              case '3':
+                console.log("Player B move");
+                if ($scope.playerId == 2) {
+
+                  $scope.blocked = false;
+                  if (successResponse.data.lastmove) $scope.drawMove(successResponse.data.lastmove, 'orange');
+
+                }
+                else $scope.blocked = true;
+
+
+                break;
+
+            }
+
+            $scope.state = successResponse.data.code;
+
+          }
+
+
+
+        },
+        function(errorResponse) {
+          console.log("Error: " + errorResponse.status + " " + errorResponse.statusText);
+        })
+
+    }
+
+    $scope.drawMove = function(move, color) {
+
+      var group = new paper.Group([]);
+
+      move.forEach(function(e) {
+
+        x = parseInt(e[0]);
+        y = parseInt(e[1]);
+
+
+
+
+        var rect = paper.Path.Rectangle({
+          point: [shiftx + x * grid, shifty + y * grid],
+          size: [grid, grid],
+          fillColor: color,
+          strokeWidth: 2,
+          strokeColor: color
+
+        });
+
+
+        rect.fillColor.alpha = 0.75;
+        group.addChild(rect);
+
+
+
+      })
+      group.opacity = 0.75;
+      group.angle = 0;
+
+      paper.view.draw();
+
+    }
 
 
     $scope.getMoves = function() {
@@ -113,14 +211,18 @@ var app = angular.module('blockusApp', [])
     $scope.positionBlocks = function() {
       var y = grid;
       var x = 450;
+      var color;
+      if ($scope.playerId == 1) color = 'orange';
+      else color = '#B164DE';
 
       $scope.blocks.forEach(function(element, index) {
-      console.log(element);
         x = x + 120;
         if (x > 450 + 600) {
           x = 450 + 120;
           y = y + 80;
         }
+
+
 
         var group = new paper.Group([]);
         group.bid = index;
@@ -139,9 +241,9 @@ var app = angular.module('blockusApp', [])
               var rect = paper.Path.Rectangle({
                 point: [grid * i, grid * j],
                 size: [grid, grid],
-                fillColor: 'orange',
+                fillColor: color,
                 strokeWidth: 2,
-                strokeColor: 'orange'
+                strokeColor: color
 
               });
 
@@ -160,7 +262,7 @@ var app = angular.module('blockusApp', [])
 
         group.onMouseDown = function() {
           console.log("down");
-          if (this.locked) return;
+          if (this.locked || $scope.blocked) return;
 
           if ((selected == null) || (selected.bid != this.bid)) {
             selected = this;
@@ -185,7 +287,7 @@ var app = angular.module('blockusApp', [])
 
 
         group.onMouseDrag = function(event) {
-          if (this.locked) return;
+          if (this.locked || $scope.blocked) return;
           this.position = event.point;
           if ((this.bounds.left <= 435) && (this.bounds.top <= 370) && (this.bounds.left > 86) && (this.bounds.top > 32)) {
 
@@ -201,7 +303,13 @@ var app = angular.module('blockusApp', [])
 
         group.onMouseUp = function() {
           console.log("up");
+          if ($scope.blocked) {
 
+            console.log('blocked');
+            this.position = this.initialPosition;
+            return;
+
+          }
           this.opacity = 0.75;
           if (this.bid != selected.bid) return;
           console.log("I'm dropped");

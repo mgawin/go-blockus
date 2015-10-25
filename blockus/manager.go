@@ -5,8 +5,9 @@ import (
 )
 
 type Manager struct {
-	gamesCache map[string]*Game
-	storage    Persister
+	gamesCache  map[string]*Game
+	storage     Persister
+	currentGame *string
 }
 
 type Persister interface {
@@ -16,36 +17,60 @@ type Persister interface {
 
 func Init(db Persister) *Manager {
 
-	manager := new(Manager)
-	manager.storage = db
-	manager.gamesCache = make(map[string]*Game)
-	return manager
+	mgr := new(Manager)
+	mgr.storage = db
+	mgr.gamesCache = make(map[string]*Game)
+	return mgr
 }
 
-func (manager *Manager) DispatchPlayer() (*string, *Game, *int, error) {
-	game := new(Game)
-	pid := 1
-	game.PlayerA = NewPlayer("Player1", pid)
-	game.PlayerB = NewPlayer("Player2", pid)
+func (mgr *Manager) DispatchPlayer() (*string, *Game, *int, error) {
 
-	game.Board = NewBoard()
+	if mgr.currentGame != nil {
 
-	gid, err := manager.storage.StoreGame(game, nil)
-	if err != nil {
-		return nil, nil, nil, err
+		game, err := mgr.GetGame(mgr.currentGame)
+		if err != nil {
+
+			return nil, nil, nil, err
+
+		}
+		pid := 2
+		game.PlayerB = NewPlayer("PlayerB", pid)
+		gid, err := mgr.storage.StoreGame(game, mgr.currentGame)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		mgr.currentGame = nil
+		game.State = AMOVE
+		return &gid, game, &pid, nil
+
+	} else {
+
+		game := new(Game)
+		pid := 1
+		game.PlayerA = NewPlayer("Player1", pid)
+		game.PlayerB = NewPlayer("Player2", pid)
+		game.State = WAITING
+
+		game.Board = NewBoard()
+
+		gid, err := mgr.storage.StoreGame(game, nil)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		log.Println(gid)
+		mgr.gamesCache[gid] = game
+		mgr.currentGame = &gid
+
+		return &gid, game, &pid, nil
 	}
-	log.Println(gid)
-	manager.gamesCache[gid] = game
-	return &gid, game, &pid, nil
-
 }
 
-func (manager *Manager) GetGame(gid *string) (*Game, error) {
+func (mgr *Manager) GetGame(gid *string) (*Game, error) {
 
-	game, prs := manager.gamesCache[*gid]
+	game, prs := mgr.gamesCache[*gid]
 	if !prs {
 		var err error
-		game, err = manager.storage.GetGame(gid)
+		game, err = mgr.storage.GetGame(gid)
 		if err != nil {
 			log.Println(err)
 			return nil, err
@@ -57,17 +82,17 @@ func (manager *Manager) GetGame(gid *string) (*Game, error) {
 
 }
 
-func (manager *Manager) SaveGame(game *Game, gid *string) error {
+func (mgr *Manager) SaveGame(game *Game, gid *string) error {
 
-	g, err := manager.storage.StoreGame(game, gid)
+	g, err := mgr.storage.StoreGame(game, gid)
 	if err != nil || *gid != g {
 		return err
 	}
-	if manager.gamesCache[*gid] != game {
+	if mgr.gamesCache[*gid] != game {
 		log.Println(*gid)
 		log.Println(game)
 		log.Println("Cache inconsistency")
-		manager.gamesCache[*gid] = game
+		mgr.gamesCache[*gid] = game
 	}
 	return nil
 }

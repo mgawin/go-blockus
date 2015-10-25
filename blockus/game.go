@@ -9,16 +9,19 @@ type Game struct {
 	PlayerB     player
 	Board       board
 	moves_taken int
+	State       gameStatus
+	LastMove    [][2]int
 }
 
-// func NewGame(name1 string, name2 string) *Game {
-// 	game := new(Game)
-// 	game.PlayerB = NewPlayer(name1, 1)
-// 	game.PlayerA = NewPlayer(name2, 2)
-// 	game.Board = NewBoard()
-// 	return game
+type gameStatus int
 
-// }
+const (
+	NULL gameStatus = iota
+	WAITING
+	AMOVE
+	BMOVE
+	FINISHED
+)
 
 func (game *Game) ToString() string {
 
@@ -46,8 +49,13 @@ func FromJSON(s []byte) (Game, error) {
 
 func (game *Game) Move(block *block, x int, y int) {
 
-	game.Board.Put(block, x, y)
+	game.LastMove, _ = game.Board.Put(block, x, y)
+	if game.State == AMOVE {
+		game.State = BMOVE
+	} else {
+		game.State = AMOVE
 
+	}
 }
 
 func (game *Game) Check(block *block, x int, y int) bool {

@@ -32,6 +32,9 @@ func init() {
 	info = api.MethodByName("DoMove").Info()
 	info.Name, info.HTTPMethod, info.Path = "DoMove", "POST", "move"
 
+	info = api.MethodByName("Status").Info()
+	info.Name, info.HTTPMethod, info.Path = "Status", "GET", "status"
+
 	db = new(AppengineStore)
 	manager = blockus.Init(db)
 
@@ -208,4 +211,50 @@ func (BlockusAPI) DoMove(c context.Context, r *DoMoveReq) error {
 
 	}
 	return nil
+}
+
+type StatusReq struct {
+	PID string `json:"pid"`
+	GID string `json:"gid"`
+}
+
+type StatusRes struct {
+	Code     string   `json:"code"`
+	LastMove [][2]int `json:"lastmove"`
+}
+
+func (BlockusAPI) Status(c context.Context, r *StatusReq) (*StatusRes, error) {
+
+	db.SetContext(c)
+
+	t0 := time.Now()
+	defer log.Println(time.Since(t0).String())
+
+	if len(r.GID) == 0 || len(r.PID) == 0 {
+
+		return nil, endpoints.NewBadRequestError("Missing parameters")
+
+	}
+
+	game, err := manager.GetGame(&r.GID)
+
+	switch {
+
+	case err == datastore.ErrNoSuchEntity:
+		return nil, endpoints.NewNotFoundError("game not found")
+
+	case err == datastore.ErrInvalidKey:
+		return nil, endpoints.NewNotFoundError("Invalid key")
+
+	case err == ErrGenericKeyError:
+		return nil, endpoints.NewNotFoundError("Invalid key")
+
+	case err != nil:
+		return nil, endpoints.NewInternalServerError("server error")
+
+	}
+
+	res := StatusRes{Code: strconv.Itoa(int(game.State)), LastMove: game.LastMove}
+
+	return &res, nil
 }

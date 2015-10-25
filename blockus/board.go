@@ -88,22 +88,26 @@ func (board *board) ToString() string {
 
 }
 
-func (board *board) Put(block *block, x int, y int) error {
+func (board *board) Put(block *block, x int, y int) ([][2]int, error) {
 
 	if !board.is_allowed(block, x, y) {
-		return errors.New("Illegal move.")
+		return nil, errors.New("Illegal move.")
 	}
+	filledItems := [][2]int{}
 	for j := 0; j < len(block.Shape); j++ {
 		for i := 0; i < len(block.Shape[j]); i++ {
 
 			board.Field[y+j][x+i] = block.Shape[j][i]
-
+			if block.Shape[j][i] != 0 {
+				coords := [2]int{x + i, y + j}
+				filledItems = append(filledItems, coords)
+			}
 		}
 
 	}
 
 	board.Count++
-	return nil
+	return filledItems, nil
 }
 
 func (board *board) touch_corner(i int, j int, value int) bool {
