@@ -102,10 +102,11 @@ func (BlockusAPI) GetAllowedMoves(c context.Context, r *MovesReq) (*MovesRes, er
 		return nil, endpoints.NewInternalServerError("server error")
 
 	}
+	
 
-	player := game.PlayerB
-	if i, _ := strconv.Atoi(r.PID); i > 0 {
-		player = game.PlayerA
+	player := game.PlayerA
+	if i, _ := strconv.Atoi(r.PID); i > 1 {
+		player = game.PlayerB
 	}
 
 	j, _ := strconv.Atoi(r.BID)
@@ -167,9 +168,9 @@ func (BlockusAPI) DoMove(c context.Context, r *DoMoveReq) error {
 
 	}
 
-	player := game.PlayerB
-	if i, _ := strconv.Atoi(r.PID); i > 0 {
-		player = game.PlayerA
+	player := game.PlayerA
+	if i, _ := strconv.Atoi(r.PID); i > 1 {
+		player = game.PlayerB
 	}
 
 	j, _ := strconv.Atoi(r.BID)

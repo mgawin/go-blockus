@@ -1,8 +1,5 @@
 package blockus
 
-import (
-	"log"
-)
 
 type Manager struct {
 	gamesCache  map[string]*Game
@@ -29,7 +26,7 @@ func (mgr *Manager) DispatchPlayer() (*string, *Game, *int, error) {
 
 		game, err := mgr.GetGame(mgr.currentGame)
 		if err != nil {
-
+			ErrorLog.Println("Unable to find current game"+*mgr.currentGame)
 			return nil, nil, nil, err
 
 		}
@@ -48,7 +45,6 @@ func (mgr *Manager) DispatchPlayer() (*string, *Game, *int, error) {
 		game := new(Game)
 		pid := 1
 		game.PlayerA = NewPlayer("Player1", pid)
-		game.PlayerB = NewPlayer("Player2", pid)
 		game.State = WAITING
 
 		game.Board = NewBoard()
@@ -57,7 +53,6 @@ func (mgr *Manager) DispatchPlayer() (*string, *Game, *int, error) {
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		log.Println(gid)
 		mgr.gamesCache[gid] = game
 		mgr.currentGame = &gid
 
@@ -68,11 +63,13 @@ func (mgr *Manager) DispatchPlayer() (*string, *Game, *int, error) {
 func (mgr *Manager) GetGame(gid *string) (*Game, error) {
 
 	game, prs := mgr.gamesCache[*gid]
+	DebugLog.Println(mgr.gamesCache[*gid])
 	if !prs {
 		var err error
+		DebugLog.Println("Game from storage")
 		game, err = mgr.storage.GetGame(gid)
 		if err != nil {
-			log.Println(err)
+			ErrorLog.Println(err)
 			return nil, err
 		}
 
@@ -89,9 +86,8 @@ func (mgr *Manager) SaveGame(game *Game, gid *string) error {
 		return err
 	}
 	if mgr.gamesCache[*gid] != game {
-		log.Println(*gid)
-		log.Println(game)
-		log.Println("Cache inconsistency")
+		DebugLog.Println(*gid)
+		DebugLog.Println(game)
 		mgr.gamesCache[*gid] = game
 	}
 	return nil

@@ -1,7 +1,9 @@
 package blockus
 
-import "strconv"
-import "errors"
+import ("strconv"
+		"log"
+"errors")
+
 
 type board struct {
 	Field [14][14]int
@@ -98,6 +100,8 @@ func (board *board) Put(block *block, x int, y int) ([][2]int, error) {
 		for i := 0; i < len(block.Shape[j]); i++ {
 
 			board.Field[y+j][x+i] = block.Shape[j][i]
+			log.Println(block.Shape[j][i])
+		
 			if block.Shape[j][i] != 0 {
 				coords := [2]int{x + i, y + j}
 				filledItems = append(filledItems, coords)
@@ -105,7 +109,6 @@ func (board *board) Put(block *block, x int, y int) ([][2]int, error) {
 		}
 
 	}
-
 	board.Count++
 	return filledItems, nil
 }
@@ -131,6 +134,7 @@ func (board *board) touch_corner(i int, j int, value int) bool {
 	}
 	if (c4 == value) || (c3 == value) || (c2 == value) || (c1 == value) {
 
+		
 		return true
 	}
 	return false
@@ -158,7 +162,6 @@ func (board *board) touch_edge(i int, j int, value int) bool {
 	}
 
 	if (c4 == value) || (c3 == value) || (c2 == value) || (c1 == value) {
-
 		return true
 	}
 	return false
